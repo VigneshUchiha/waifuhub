@@ -10,18 +10,18 @@ let categories = document.getElementById('categories');
 document.getElementById('api1').addEventListener('click',() =>{
     currApi = "https://api.waifu.pics/sfw/waifu";
     api = 1;
-    categories.innerHTML = `<a href="/waifu" id="waifu">waifu</a>
-    <a href="/neko" id="neko">neko</a>
-    <a href="/cuddle" id="cuddle">cuddle</a>
-    <a href="/cry" id="cry">cry</a>
-    <a href="/handhold" id="handhold">handhold</a>`;
+    categories.innerHTML = `<a href="" id="waifu">waifu</a>
+    <a href="" id="neko">neko</a>
+    <a href="" id="cuddle">cuddle</a>
+    <a href="" id="cry">cry</a>
+    <a href="" id="handhold">handhold</a>`;
 })
 
 
 document.getElementById('api2').addEventListener('click',() =>{
     currApi = "https://api.waifu.im/search/?included_tags=uniform";
     api = 2;
-    categories.innerHTML = `<a href="/uniform" id="uniform">default</a>`
+    categories.innerHTML = `<a href="" id="uniform">default</a>`
 })
 
 // for api1 categories
