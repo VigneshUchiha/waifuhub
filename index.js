@@ -21,7 +21,7 @@ document.getElementById('api1').addEventListener('click',() =>{
 document.getElementById('api2').addEventListener('click',() =>{
     currApi = "https://api.waifu.im/search/?included_tags=uniform";
     api = 2;
-    categories.innerHTML = `<a href="" id="uniform">default</a>`
+    categories.innerHTML = `<a href="" id="uniform">default</a>`;
 })
 
 // for api1 categories
