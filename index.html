@@ -1,94 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waifu kaavala nayana</title>
-    <link rel="stylesheet" href="main.css">
-    <style>
-        .dropbtn {
-          background-color: rgb(192, 38, 211);
-          color: white;
-          padding: 16px;
-          font-size: 16px;
-          border: none;
-          border-radius: 8px;
-        }
-        
-        .dropdown {
-          position: relative;
-          display: inline-block;
-          overflow-y: scroll;
-          min-height: 100px;
-        }
-        
-        .dropdown-content {
-          display: none;
-          position: absolute;
-          background-color: #f1f1f1;
-          min-width: 160px;
-          border-radius: 8px;
-          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-          z-index: 1;
-        }
-        
-        .dropdown-content a {
-          color: black;
-          padding: 12px 16px;
-          text-decoration: none;
-          display: block;
-        }
-        
-        .dropdown-content a:hover {background-color: #ddd;}
-        
-        .dropdown:hover .dropdown-content {display: block; overflow-y: scroll;}
-        
-        .dropdown:hover .dropbtn {background-color: rgb(192, 38, 211); overflow-y: scroll;
-}
-        </style>
-</head>
-<body>
-    <div class="bg-cyan-500 w-full h-screen flex flex-col items-center" id="wrapper">
-        <!-- title div -->
-        <h1 class="text-fuchsia-600 text-[40px] m-5"> Waifu Hub </h1>
-        <!-- description -->
-        <p class="text-center" id="oppai">This is a fun website where we can see our favourite waifus &#x1F61C;</p>
-        <!-- categorites -->
 
-        <!-- image -->
-        <img id="maarcho" class="h-[500px] m-[30px]" src="https://i.waifu.pics/pojy7zt.jpg" alt="No image exists">
-        <!-- button -->
-        <div class="flex gap-8"> 
-            <button id="reload" class="h-[57px] relative inline-flex items-center justify-center p-0.5 mb-2 mr-2 overflow-hidden text-sm font-medium text-gray-900 rounded-lg group bg-gradient-to-br from-purple-500 to-pink-500 group-hover:from-purple-500 group-hover:to-pink-500 hover:text-white dark:text-white focus:ring-4 focus:outline-none focus:ring-purple-200 dark:focus:ring-purple-800">
-                <span class="h-[50px] pt-4 relative px-5 py-2.5 transition-all ease-in duration-75 bg-white dark:bg-gray-900 rounded-md group-hover:bg-opacity-0">
-                    Reload
-                </span>
-              </button>
-              
-            <div class="dropdown">
-                <div class="dropdown-content">
-                    <a href="" id="api1">Api 1</a>
-                    <a href="" id="api2">Api 2</a>
-                </div>
-                <button class="dropbtn">Change API</button>
-            </div>
-            <div class="dropdown">
-                <div class="dropdown-content" id="categories">
-                    <a href="" id="waifu">waifu</a>
-                    <a href="" id="neko">neko</a>
-                    <a href="" id="cuddle">cuddle</a>
-                    <a href="" id="smile">smile</a>
-                    <a href="" id="handhold">handhold</a>
-                </div>
-                <button class="dropbtn">Categories</button>
-            </div>
-        </div>
-    
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WaifuHub | The Deck</title>
+  <link rel="stylesheet" href="main.css">
+  <!-- Google Fonts: Outfit for modern, clean look -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      /* IE and Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    /* Liquid Glass Utilities */
+    .liquid-glass {
+      background: rgba(20, 20, 23, 0.6);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+  </style>
+</head>
+
+<body class="bg-deep-bg text-white min-h-screen selection:bg-accent-pink selection:text-white overflow-x-hidden">
+
+  <!-- Top Navigation (Floating Glass) -->
+  <nav class="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center pointer-events-none">
+    <div class="pointer-events-auto liquid-glass rounded-full px-6 py-3 flex items-center space-x-4">
+      <h1
+        class="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+        WaifuHub
+      </h1>
+      <div class="h-4 w-[1px] bg-white/10"></div>
+      <!-- Search (Visual Placeholder) -->
+      <div class="relative group">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+        <input type="text" placeholder="Search tags..."
+          class="bg-white/5 border border-white/5 rounded-full pl-8 pr-4 py-1 text-sm focus:outline-none focus:bg-white/10 focus:border-accent-primary transition-all w-32 focus:w-48 text-gray-200 placeholder-gray-500">
+      </div>
     </div>
 
+    <div class="pointer-events-auto liquid-glass rounded-full px-2 py-2 flex items-center">
+      <button id="nsfw-toggle"
+        class="px-4 py-1.5 rounded-full text-xs font-bold text-gray-400 hover:text-white transition-colors flex items-center gap-2">
+        <span>NSFW</span>
+        <div class="w-8 h-4 bg-white/10 rounded-full relative">
+          <div id="nsfw-knob" class="absolute left-0.5 top-0.5 w-3 h-3 bg-gray-400 rounded-full transition-all"></div>
+        </div>
+      </button>
+    </div>
+  </nav>
 
+  <!-- Main Content Wrapper -->
+  <div class="pt-28 pb-10 px-4 md:px-8 max-w-[1920px] mx-auto">
 
-    <script src="index.js"></script>
+    <!-- Category Pills (Secondary Nav) -->
+    <div class="mb-8 relative group">
+      <div
+        class="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-deep-bg to-transparent z-10 pointer-events-none">
+      </div>
+      <div
+        class="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-deep-bg to-transparent z-10 pointer-events-none">
+      </div>
+
+      <div id="tags-bar" class="flex space-x-3 overflow-x-auto no-scrollbar pb-2 px-1 scroll-smooth">
+        <!-- Javascript will inject pills here -->
+        <button
+          class="liquid-glass px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap hover:bg-white/10 transition-all border-accent-pink text-white shadow-[0_0_15px_rgba(255,55,95,0.3)]">
+          All
+        </button>
+        <button
+          class="liquid-glass px-5 py-2 rounded-full text-sm font-medium text-gray-400 whitespace-nowrap hover:text-white hover:bg-white/5 transition-all text-shadow">
+          Waifu
+        </button>
+      </div>
+    </div>
+
+    <!-- Masonry Grid -->
+    <!-- We use CSS Columns for true Masonry feel -->
+    <div class="columns-1 sm:columns-2 md:columns-3 lg:columns-4 xl:columns-5 gap-4 space-y-4" id="masonry-grid">
+      <!-- Images will be injected here -->
+
+      <!-- Loading Skeleton (Initial State) -->
+      <div class="break-inside-avoid mb-4">
+        <div class="w-full h-64 bg-white/5 rounded-2xl animate-pulse"></div>
+      </div>
+      <div class="break-inside-avoid mb-4">
+        <div class="w-full h-96 bg-white/5 rounded-2xl animate-pulse"></div>
+      </div>
+      <div class="break-inside-avoid mb-4">
+        <div class="w-full h-72 bg-white/5 rounded-2xl animate-pulse"></div>
+      </div>
+    </div>
+
+    <!-- Load More / Spinner -->
+    <div id="loader" class="text-center py-10 hidden">
+      <div class="inline-block w-8 h-8 border-2 border-white/20 border-t-accent-primary rounded-full animate-spin">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Fullscreen Lightbox (Hidden by default) -->
+  <div id="lightbox"
+    class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-3xl hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4"
+    onclick="closeLightbox(event)">
+    <div
+      class="relative max-w-5xl w-full max-h-[90vh] flex flex-col md:flex-row bg-[#1a1a1e] rounded-3xl overflow-hidden shadow-2xl border border-white/10 scale-95 transition-transform duration-300"
+      id="lightbox-content">
+      <!-- Image Side -->
+      <div class="flex-1 bg-black flex items-center justify-center relative group">
+        <img id="lightbox-img" src="" class="max-w-full max-h-[60vh] md:max-h-[90vh] object-contain" alt="Full view">
+        <a id="download-btn" href="#" target="_blank"
+          class="absolute bottom-6 right-6 bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-sm font-medium transition opacity-0 group-hover:opacity-100">
+          <i class="fas fa-download mr-2"></i> Download
+        </a>
+      </div>
+      <!-- Info Side -->
+      <div class="w-full md:w-80 bg-[#1a1a1e] p-6 flex flex-col border-l border-white/5">
+        <div class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1" id="lightbox-source">SOURCE</div>
+        <h2 class="text-2xl font-bold text-white mb-4 capitalize" id="lightbox-tag">Tag Name</h2>
+
+        <div class="mt-auto space-y-3">
+          <button
+            class="w-full py-3 bg-accent-primary hover:bg-blue-600 text-white rounded-xl font-bold transition shadow-lg shadow-blue-500/20">
+            Save to Collection
+          </button>
+          <button class="w-full py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold transition"
+            onclick="closeLightbox()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="index.js"></script>
 </body>
+
 </html>
