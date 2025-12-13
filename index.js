@@ -119,9 +119,9 @@ async function loadImages(reset = false) {
 
     try {
         let results = [];
-        const count = 15;
+        const count = 12; // Reduced to prevent rate limits
 
-        // Simplified logic to avoid complex if/else nesting issues
+        // Simplified logic
         const useWaifuIm = tagData.source === 'im' || (tagData.source === 'both' && Math.random() > 0.5);
 
         if (useWaifuIm) {
@@ -130,6 +130,7 @@ async function loadImages(reset = false) {
             if (isNSFW) url += '&is_nsfw=true';
 
             const res = await fetch(url);
+            if (!res.ok) throw new Error(`Waifu.im API Error: ${res.status}`);
             const data = await res.json();
             if (data.images) {
                 results = data.images.map(img => ({ url: img.url, source: 'waifu.im' }));
@@ -139,15 +140,30 @@ async function loadImages(reset = false) {
             const type = isNSFW ? 'nsfw' : 'sfw';
             const url = `https://api.waifu.pics/${type}/${activeTag}`;
 
-            const promises = Array.from({ length: 12 }).map(() => fetch(url).then(res => res.json()));
+            // Sequential fetching to be safer against rate limits, or smaller chunks
+            // We'll try 6 items but promise.all might still be aggressive.
+            // Let's rely on Promise.all but catch individual fails so we don't lose the whole batch
+            const promises = Array.from({ length: count }).map(() =>
+                fetch(url).then(res => res.json()).catch(e => null)
+            );
             const data = await Promise.all(promises);
-            results = data.map(d => ({ url: d.url, source: 'waifu.pics' }));
+            results = data.filter(d => d && d.url).map(d => ({ url: d.url, source: 'waifu.pics' }));
+
+            if (results.length === 0) throw new Error("Waifu.pics returned no images (Rate Limit?)");
         }
 
         renderImages(results);
 
     } catch (err) {
         console.error("Fetch error:", err);
+        // Show error in grid
+        gridEl.innerHTML = `
+            <div class="col-span-full text-center py-10">
+                <p class="text-red-400 font-bold mb-2">Failed to load images</p>
+                <p class="text-xs text-gray-500 font-mono">${err.message}</p>
+                <button onclick="loadImages(true)" class="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-full text-sm">Retry</button>
+            </div>
+        `;
     } finally {
         isLoading = false;
         loaderEl.classList.add('hidden');
