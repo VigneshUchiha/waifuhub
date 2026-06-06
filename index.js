@@ -290,14 +290,30 @@ window.openLightbox = (record, onFavChange) => {
     imgInfo.alt = altFor(record);
     tagName.textContent = record.tag;
 
-    // Artist attribution from nekos.best; falls back to the API source name.
-    if (record.artist && record.sourceUrl) {
-        const safeHref = encodeURI(record.sourceUrl);
-        sourceInfo.innerHTML = `${record.source} · <a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white">${record.artist}</a>`;
-    } else if (record.artist) {
-        sourceInfo.textContent = `${record.source} · ${record.artist}`;
-    } else {
-        sourceInfo.textContent = record.source;
+    // Artist attribution from nekos.best. Built with DOM APIs (no innerHTML) so
+    // artist names / URLs from the API cannot inject markup; only http(s) links
+    // are honored.
+    sourceInfo.textContent = record.source;
+    if (record.artist) {
+        sourceInfo.append(' · ');
+        let safeUrl = null;
+        if (record.sourceUrl) {
+            try {
+                const u = new URL(record.sourceUrl);
+                if (u.protocol === 'http:' || u.protocol === 'https:') safeUrl = u.href;
+            } catch { /* invalid URL — fall back to plain text */ }
+        }
+        if (safeUrl) {
+            const a = document.createElement('a');
+            a.href = safeUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'underline hover:text-white';
+            a.textContent = record.artist;
+            sourceInfo.append(a);
+        } else {
+            sourceInfo.append(record.artist);
+        }
     }
 
     dlBtn.href = record.url;
@@ -350,6 +366,7 @@ function setupEventListeners() {
         searchEl.addEventListener('keydown', (e) => {
             if (e.key !== 'Enter') return;
             const q = searchEl.value.trim().toLowerCase();
+            if (!q) return;
             const match = TAGS.find(t => t.name.toLowerCase().includes(q));
             if (match) {
                 activeTag = match.name;
