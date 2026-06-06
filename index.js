@@ -281,6 +281,7 @@ window.openLightbox = (record, onFavChange) => {
     const tagName = document.getElementById('lightbox-tag');
     const sourceInfo = document.getElementById('lightbox-source');
     const dlBtn = document.getElementById('download-btn');
+    const saveBtn = document.getElementById('save-btn');
 
     imgInfo.src = record.url;
     imgInfo.alt = altFor(record);
@@ -298,6 +299,19 @@ window.openLightbox = (record, onFavChange) => {
 
     dlBtn.href = record.url;
     dlBtn.setAttribute('aria-label', 'Download image');
+
+    // Save-to-favorites toggle, kept in sync with the originating card's heart.
+    const syncSave = () => {
+        const on = isFavorite(record.url);
+        saveBtn.innerHTML = on ? '<i class="fas fa-heart mr-2"></i>Saved' : 'Save to Collection';
+        saveBtn.setAttribute('aria-label', on ? 'Remove from favorites' : 'Save to favorites');
+    };
+    syncSave();
+    saveBtn.onclick = () => {
+        toggleFavorite(record);
+        syncSave();
+        if (onFavChange) onFavChange();
+    };
 
     lb.classList.remove('hidden');
     // Force reflow
