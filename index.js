@@ -45,6 +45,11 @@ const TAGS = [
     { name: 'think', category: 'Mood' }
 ];
 
+// --- Helpers ---
+function altFor(record) {
+    return `${record.tag} anime art` + (record.artist ? ` by ${record.artist}` : '');
+}
+
 // --- Initialization ---
 function init() {
     renderTags();
@@ -112,7 +117,10 @@ async function loadImages(reset = false) {
         const data = await res.json();
         const results = (data.results || []).map(img => ({
             url: img.url,
-            source: 'nekos.best'
+            source: 'nekos.best',
+            tag: activeTag,
+            artist: img.artist_name || null,
+            sourceUrl: img.source_url || null
         }));
 
         if (results.length === 0) throw new Error('No images returned');
@@ -137,15 +145,15 @@ async function loadImages(reset = false) {
 
 // --- Render Images ---
 function renderImages(images) {
-    images.forEach((img, index) => {
+    images.forEach((img) => {
         // Card Container
         const card = document.createElement('div');
         card.className = "break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden bg-white/5 cursor-zoom-in active:scale-95 transition-transform duration-200 border border-white/5 hover:border-accent-pink/30";
-        card.onclick = () => openLightbox(img.url, activeTag, img.source);
 
         // Image
         const imageEl = document.createElement('img');
         imageEl.src = img.url;
+        imageEl.alt = altFor(img);
         imageEl.className = "w-full h-auto object-cover opacity-0 transition-opacity duration-500";
         imageEl.loading = "lazy";
         imageEl.onload = () => imageEl.classList.remove('opacity-0');
@@ -156,9 +164,11 @@ function renderImages(images) {
         overlay.innerHTML = `
             <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                 <span class="text-xs font-bold text-accent-primary uppercase tracking-wider mb-1 block">${img.source}</span>
-                <h3 class="text-white font-bold capitalize text-lg shadow-black drop-shadow-md">${activeTag}</h3>
+                <h3 class="text-white font-bold capitalize text-lg shadow-black drop-shadow-md">${img.tag}</h3>
             </div>
         `;
+
+        card.onclick = () => openLightbox(img);
 
         card.appendChild(imageEl);
         card.appendChild(overlay);
@@ -167,7 +177,7 @@ function renderImages(images) {
 }
 
 // --- Lightbox Logic ---
-window.openLightbox = (url, tag, source) => {
+window.openLightbox = (record, onFavChange) => {
     const lb = document.getElementById('lightbox');
     const lbContent = document.getElementById('lightbox-content');
     const imgInfo = document.getElementById('lightbox-img');
@@ -175,10 +185,22 @@ window.openLightbox = (url, tag, source) => {
     const sourceInfo = document.getElementById('lightbox-source');
     const dlBtn = document.getElementById('download-btn');
 
-    imgInfo.src = url;
-    tagName.textContent = tag;
-    sourceInfo.textContent = source;
-    dlBtn.href = url;
+    imgInfo.src = record.url;
+    imgInfo.alt = altFor(record);
+    tagName.textContent = record.tag;
+
+    // Artist attribution from nekos.best; falls back to the API source name.
+    if (record.artist && record.sourceUrl) {
+        const safeHref = encodeURI(record.sourceUrl);
+        sourceInfo.innerHTML = `${record.source} · <a href="${safeHref}" target="_blank" rel="noopener noreferrer" class="underline hover:text-white">${record.artist}</a>`;
+    } else if (record.artist) {
+        sourceInfo.textContent = `${record.source} · ${record.artist}`;
+    } else {
+        sourceInfo.textContent = record.source;
+    }
+
+    dlBtn.href = record.url;
+    dlBtn.setAttribute('aria-label', 'Download image');
 
     lb.classList.remove('hidden');
     // Force reflow
