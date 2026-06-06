@@ -3,6 +3,7 @@
 let activeTag = 'waifu';
 let isLoading = false;
 let favoritesMode = false;   // when true, the grid shows saved favorites
+let tagQuery = '';           // current search filter for the tag bar
 
 // --- DOM Elements ---
 const gridEl = document.getElementById('masonry-grid');
@@ -113,6 +114,8 @@ function renderTags() {
     tagsBarEl.appendChild(favPill);
 
     TAGS.forEach(tag => {
+        if (tagQuery && !tag.name.toLowerCase().includes(tagQuery)) return;
+
         const btn = document.createElement('button');
         const isActive = !favoritesMode && tag.name === activeTag;
 
@@ -337,6 +340,26 @@ window.closeLightbox = (e) => {
 
 // --- Event Listeners ---
 function setupEventListeners() {
+    // Tag search: live-filter the pills; Enter loads the top match.
+    const searchEl = document.getElementById('tag-search');
+    if (searchEl) {
+        searchEl.addEventListener('input', () => {
+            tagQuery = searchEl.value.trim().toLowerCase();
+            renderTags();
+        });
+        searchEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            const q = searchEl.value.trim().toLowerCase();
+            const match = TAGS.find(t => t.name.toLowerCase().includes(q));
+            if (match) {
+                activeTag = match.name;
+                favoritesMode = false;
+                renderTags();
+                loadImages(true);
+            }
+        });
+    }
+
     // Infinite Scroll
     window.addEventListener('scroll', () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
