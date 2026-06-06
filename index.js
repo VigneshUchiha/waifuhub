@@ -2,6 +2,7 @@
 // --- State ---
 let activeTag = 'waifu';
 let isLoading = false;
+let favoritesMode = false;   // when true, the grid shows saved favorites
 
 // --- DOM Elements ---
 const gridEl = document.getElementById('masonry-grid');
@@ -50,6 +51,42 @@ function altFor(record) {
     return `${record.tag} anime art` + (record.artist ? ` by ${record.artist}` : '');
 }
 
+// --- Favorites (localStorage) ---
+const FAV_KEY = 'waifuhub:favorites';
+
+function getFavorites() {
+    try {
+        return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+    } catch {
+        return [];
+    }
+}
+
+function saveFavorites(list) {
+    try {
+        localStorage.setItem(FAV_KEY, JSON.stringify(list));
+    } catch {
+        /* storage unavailable — ignore */
+    }
+}
+
+function isFavorite(url) {
+    return getFavorites().some(f => f.url === url);
+}
+
+// Returns true if the record is now a favorite, false if it was removed.
+function toggleFavorite(record) {
+    const list = getFavorites();
+    const idx = list.findIndex(f => f.url === record.url);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+    } else {
+        list.push(record);
+    }
+    saveFavorites(list);
+    return idx < 0;
+}
+
 // --- Initialization ---
 function init() {
     renderTags();
@@ -61,9 +98,23 @@ function init() {
 function renderTags() {
     tagsBarEl.innerHTML = '';
 
+    // Favorites pill — always first, always visible
+    const favPill = document.createElement('button');
+    favPill.className = "px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border " +
+        (favoritesMode
+            ? "bg-accent-pink/20 border-accent-pink text-white shadow-[0_0_15px_rgba(255,55,95,0.3)]"
+            : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10");
+    favPill.innerHTML = '<i class="fas fa-heart mr-2 text-accent-pink"></i>Favorites';
+    favPill.onclick = () => {
+        favoritesMode = true;
+        renderTags();
+        loadImages(true);
+    };
+    tagsBarEl.appendChild(favPill);
+
     TAGS.forEach(tag => {
         const btn = document.createElement('button');
-        const isActive = tag.name === activeTag;
+        const isActive = !favoritesMode && tag.name === activeTag;
 
         // Base glass styles
         let classes = "px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border border-white/5 ";
@@ -80,6 +131,7 @@ function renderTags() {
 
         btn.onclick = () => {
             activeTag = tag.name;
+            favoritesMode = false;
             renderTags(); // Re-render for active state
             loadImages(true); // Reset grid
         };
@@ -90,6 +142,10 @@ function renderTags() {
 
 // --- Fetch Logic ---
 async function loadImages(reset = false) {
+    if (favoritesMode) {
+        if (reset) renderFavorites();
+        return; // ignore infinite-scroll loads while viewing favorites
+    }
     if (isLoading) return;
     isLoading = true;
     loaderEl.classList.remove('hidden');
@@ -143,6 +199,23 @@ async function loadImages(reset = false) {
     }
 }
 
+// --- Favorites View ---
+function renderFavorites() {
+    loaderEl.classList.add('hidden');
+    gridEl.innerHTML = '';
+    const favs = getFavorites();
+    if (favs.length === 0) {
+        gridEl.innerHTML = `
+            <div class="col-span-full text-center py-10">
+                <p class="text-gray-400 font-bold mb-2">No favorites yet</p>
+                <p class="text-xs text-gray-500">Tap the <i class="fas fa-heart text-accent-pink"></i> on any image to save it here.</p>
+            </div>
+        `;
+        return;
+    }
+    renderImages(favs);
+}
+
 // --- Render Images ---
 function renderImages(images) {
     images.forEach((img) => {
@@ -158,6 +231,29 @@ function renderImages(images) {
         imageEl.loading = "lazy";
         imageEl.onload = () => imageEl.classList.remove('opacity-0');
 
+        // Favorite (heart) button
+        const fav = document.createElement('button');
+        const refreshFav = () => {
+            const on = isFavorite(img.url);
+            fav.className = "absolute top-3 right-3 z-10 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-base transition-all " +
+                (on ? "opacity-100 text-accent-pink" : "opacity-0 group-hover:opacity-100 text-white hover:text-accent-pink");
+            fav.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
+            fav.innerHTML = on ? '<i class="fas fa-heart"></i>' : '<i class="far fa-heart"></i>';
+        };
+        refreshFav();
+        const onFavToggle = () => {
+            refreshFav();
+            if (favoritesMode && !isFavorite(img.url)) {
+                card.remove();
+                if (gridEl.children.length === 0) renderFavorites();
+            }
+        };
+        fav.onclick = (e) => {
+            e.stopPropagation(); // don't open the lightbox
+            toggleFavorite(img);
+            onFavToggle();
+        };
+
         // Overlay (Hover)
         const overlay = document.createElement('div');
         overlay.className = "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4";
@@ -168,9 +264,10 @@ function renderImages(images) {
             </div>
         `;
 
-        card.onclick = () => openLightbox(img);
+        card.onclick = () => openLightbox(img, onFavToggle);
 
         card.appendChild(imageEl);
+        card.appendChild(fav);
         card.appendChild(overlay);
         gridEl.appendChild(card);
     });
