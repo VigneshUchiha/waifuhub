@@ -1,7 +1,6 @@
 
 // --- State ---
 let activeTag = 'waifu';
-let isNSFW = false;
 let isLoading = false;
 
 // --- DOM Elements ---
@@ -9,59 +8,41 @@ const gridEl = document.getElementById('masonry-grid');
 const tagsBarEl = document.getElementById('tags-bar');
 const loaderEl = document.getElementById('loader');
 const lightboxEl = document.getElementById('lightbox');
-const nsfwToggleBtn = document.getElementById('nsfw-toggle');
-const nsfwKnob = document.getElementById('nsfw-knob');
 
 // --- Configuration ---
-// Tag mapping: Tag Name -> Source Compatibility
-// Source: 'pics' (Waifu.pics), 'im' (Waifu.im), 'both'
+// Each `name` is a valid nekos.best v2 category (https://docs.nekos.best).
+// `category` is just a human-readable grouping label.
 const TAGS = [
-    { name: 'waifu', source: 'both', category: 'Character' },
-    { name: 'neko', source: 'both', category: 'Character' },
-    { name: 'maid', source: 'im', category: 'Character' },
-    { name: 'uniform', source: 'im', category: 'Character' },
-    { name: 'marin-kitagawa', source: 'im', category: 'Character' },
-    { name: 'mori-calliope', source: 'im', category: 'Character' },
-    { name: 'raiden-shogun', source: 'im', category: 'Character' },
-    { name: 'oppai', source: 'im', category: 'Character' },
-    { name: 'selfies', source: 'im', category: 'Character' },
-    { name: 'kamisato-ayaka', source: 'im', category: 'Character' },
-    { name: 'shinobu', source: 'pics', category: 'Character' },
-    { name: 'megumin', source: 'pics', category: 'Character' },
+    // Portraits (static images)
+    { name: 'waifu', category: 'Character' },
+    { name: 'neko', category: 'Character' },
+    { name: 'kitsune', category: 'Character' },
+    { name: 'husbando', category: 'Character' },
 
-    // Interactions
-    { name: 'cuddle', source: 'pics', category: 'Interaction' },
-    { name: 'hug', source: 'pics', category: 'Interaction' },
-    { name: 'kiss', source: 'pics', category: 'Interaction' },
-    { name: 'pat', source: 'pics', category: 'Interaction' },
-    { name: 'poke', source: 'pics', category: 'Interaction' },
-    { name: 'slap', source: 'pics', category: 'Interaction' },
-    { name: 'bite', source: 'pics', category: 'Interaction' },
-    { name: 'bonk', source: 'pics', category: 'Interaction' },
-    { name: 'handhold', source: 'pics', category: 'Interaction' },
-    { name: 'highfive', source: 'pics', category: 'Interaction' },
-    { name: 'smile', source: 'pics', category: 'Interaction' },
-    { name: 'blush', source: 'pics', category: 'Interaction' },
-    { name: 'wave', source: 'pics', category: 'Interaction' },
-    { name: 'dance', source: 'pics', category: 'Interaction' },
+    // Interactions (animated gifs)
+    { name: 'hug', category: 'Interaction' },
+    { name: 'cuddle', category: 'Interaction' },
+    { name: 'kiss', category: 'Interaction' },
+    { name: 'handhold', category: 'Interaction' },
+    { name: 'pat', category: 'Interaction' },
+    { name: 'poke', category: 'Interaction' },
+    { name: 'highfive', category: 'Interaction' },
+    { name: 'slap', category: 'Interaction' },
+    { name: 'bite', category: 'Interaction' },
+    { name: 'tickle', category: 'Interaction' },
+    { name: 'feed', category: 'Interaction' },
 
-    // Moods
-    { name: 'happy', source: 'pics', category: 'Mood' },
-    { name: 'cry', source: 'pics', category: 'Mood' },
-    { name: 'smug', source: 'pics', category: 'Mood' },
-    { name: 'cringe', source: 'pics', category: 'Mood' },
-    { name: 'bully', source: 'pics', category: 'Mood' },
-
-    // NSFW (Only avail if toggled)
-    { name: 'hentai', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'milf', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'oral', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'paizuri', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'ecchi', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'ass', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'ero', source: 'im', category: 'NSFW', nsfw: true },
-    { name: 'trap', source: 'pics', category: 'NSFW', nsfw: true },
-    { name: 'blowjob', source: 'pics', category: 'NSFW', nsfw: true }
+    // Moods (animated gifs)
+    { name: 'happy', category: 'Mood' },
+    { name: 'smile', category: 'Mood' },
+    { name: 'wave', category: 'Mood' },
+    { name: 'blush', category: 'Mood' },
+    { name: 'smug', category: 'Mood' },
+    { name: 'cry', category: 'Mood' },
+    { name: 'pout', category: 'Mood' },
+    { name: 'dance', category: 'Mood' },
+    { name: 'sleep', category: 'Mood' },
+    { name: 'think', category: 'Mood' }
 ];
 
 // --- Initialization ---
@@ -76,8 +57,6 @@ function renderTags() {
     tagsBarEl.innerHTML = '';
 
     TAGS.forEach(tag => {
-        if (tag.nsfw && !isNSFW) return; // Skip NSFW if toggle off
-
         const btn = document.createElement('button');
         const isActive = tag.name === activeTag;
 
@@ -115,42 +94,28 @@ async function loadImages(reset = false) {
     }
 
     const tagData = TAGS.find(t => t.name === activeTag);
-    if (!tagData) return;
+    if (!tagData) {
+        // Guard: unknown tag. Reset state so the UI doesn't lock up.
+        isLoading = false;
+        loaderEl.classList.add('hidden');
+        return;
+    }
 
     try {
-        let results = [];
-        const count = 12; // Reduced to prevent rate limits
+        const count = 12;
+        // nekos.best returns a batch in a single request and sends CORS headers.
+        const url = `https://nekos.best/api/v2/${activeTag}?amount=${count}`;
 
-        // Simplified logic
-        const useWaifuIm = tagData.source === 'im' || (tagData.source === 'both' && Math.random() > 0.5);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`nekos.best API Error: ${res.status}`);
 
-        if (useWaifuIm) {
-            // Waifu.im
-            let url = `https://api.waifu.im/search?included_tags=${activeTag}&limit=${count}`;
-            if (isNSFW) url += '&is_nsfw=true';
+        const data = await res.json();
+        const results = (data.results || []).map(img => ({
+            url: img.url,
+            source: 'nekos.best'
+        }));
 
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`Waifu.im API Error: ${res.status}`);
-            const data = await res.json();
-            if (data.images) {
-                results = data.images.map(img => ({ url: img.url, source: 'waifu.im' }));
-            }
-        } else {
-            // Waifu.pics
-            const type = isNSFW ? 'nsfw' : 'sfw';
-            const url = `https://api.waifu.pics/${type}/${activeTag}`;
-
-            // Sequential fetching to be safer against rate limits, or smaller chunks
-            // We'll try 6 items but promise.all might still be aggressive.
-            // Let's rely on Promise.all but catch individual fails so we don't lose the whole batch
-            const promises = Array.from({ length: count }).map(() =>
-                fetch(url).then(res => res.json()).catch(e => null)
-            );
-            const data = await Promise.all(promises);
-            results = data.filter(d => d && d.url).map(d => ({ url: d.url, source: 'waifu.pics' }));
-
-            if (results.length === 0) throw new Error("Waifu.pics returned no images (Rate Limit?)");
-        }
+        if (results.length === 0) throw new Error('No images returned');
 
         renderImages(results);
 
@@ -239,30 +204,6 @@ window.closeLightbox = (e) => {
 
 // --- Event Listeners ---
 function setupEventListeners() {
-    // NSFW Toggle
-    nsfwToggleBtn.addEventListener('click', () => {
-        isNSFW = !isNSFW;
-
-        // Animation
-        if (isNSFW) {
-            nsfwKnob.classList.add('translate-x-4', 'bg-accent-pink');
-            nsfwKnob.classList.remove('bg-gray-400');
-            nsfwToggleBtn.classList.add('text-white');
-        } else {
-            nsfwKnob.classList.remove('translate-x-4', 'bg-accent-pink');
-            nsfwKnob.classList.add('bg-gray-400');
-            nsfwToggleBtn.classList.remove('text-white');
-        }
-
-        renderTags();
-        // If current active tag is NSFW and we switched off, reset to 'waifu'
-        const currentTagData = TAGS.find(t => t.name === activeTag);
-        if (currentTagData && currentTagData.nsfw && !isNSFW) {
-            activeTag = 'waifu';
-        }
-        loadImages(true);
-    });
-
     // Infinite Scroll
     window.addEventListener('scroll', () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {

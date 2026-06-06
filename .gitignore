@@ -1,0 +1,9 @@
+# Build output (rebuilt by CI on deploy)
+dist/
+
+# Tooling / local artifacts
+.playwright-mcp/
+.DS_Store
+
+# Dependencies (installed via `npm ci`)
+node_modules/
