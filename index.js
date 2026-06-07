@@ -2,6 +2,8 @@
 // --- State ---
 let activeTag = 'waifu';
 let isLoading = false;
+let favoritesMode = false;   // when true, the grid shows saved favorites
+let tagQuery = '';           // current search filter for the tag bar
 
 // --- DOM Elements ---
 const gridEl = document.getElementById('masonry-grid');
@@ -45,6 +47,47 @@ const TAGS = [
     { name: 'think', category: 'Mood' }
 ];
 
+// --- Helpers ---
+function altFor(record) {
+    return `${record.tag} anime art` + (record.artist ? ` by ${record.artist}` : '');
+}
+
+// --- Favorites (localStorage) ---
+const FAV_KEY = 'waifuhub:favorites';
+
+function getFavorites() {
+    try {
+        return JSON.parse(localStorage.getItem(FAV_KEY)) || [];
+    } catch {
+        return [];
+    }
+}
+
+function saveFavorites(list) {
+    try {
+        localStorage.setItem(FAV_KEY, JSON.stringify(list));
+    } catch {
+        /* storage unavailable — ignore */
+    }
+}
+
+function isFavorite(url) {
+    return getFavorites().some(f => f.url === url);
+}
+
+// Returns true if the record is now a favorite, false if it was removed.
+function toggleFavorite(record) {
+    const list = getFavorites();
+    const idx = list.findIndex(f => f.url === record.url);
+    if (idx >= 0) {
+        list.splice(idx, 1);
+    } else {
+        list.push(record);
+    }
+    saveFavorites(list);
+    return idx < 0;
+}
+
 // --- Initialization ---
 function init() {
     renderTags();
@@ -56,9 +99,25 @@ function init() {
 function renderTags() {
     tagsBarEl.innerHTML = '';
 
+    // Favorites pill — always first, always visible
+    const favPill = document.createElement('button');
+    favPill.className = "px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border " +
+        (favoritesMode
+            ? "bg-accent-pink/20 border-accent-pink text-white shadow-[0_0_15px_rgba(255,55,95,0.3)]"
+            : "bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10");
+    favPill.innerHTML = '<i class="fas fa-heart mr-2 text-accent-pink"></i>Favorites';
+    favPill.onclick = () => {
+        favoritesMode = true;
+        renderTags();
+        loadImages(true);
+    };
+    tagsBarEl.appendChild(favPill);
+
     TAGS.forEach(tag => {
+        if (tagQuery && !tag.name.toLowerCase().includes(tagQuery)) return;
+
         const btn = document.createElement('button');
-        const isActive = tag.name === activeTag;
+        const isActive = !favoritesMode && tag.name === activeTag;
 
         // Base glass styles
         let classes = "px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all border border-white/5 ";
@@ -75,6 +134,7 @@ function renderTags() {
 
         btn.onclick = () => {
             activeTag = tag.name;
+            favoritesMode = false;
             renderTags(); // Re-render for active state
             loadImages(true); // Reset grid
         };
@@ -85,6 +145,10 @@ function renderTags() {
 
 // --- Fetch Logic ---
 async function loadImages(reset = false) {
+    if (favoritesMode) {
+        if (reset) renderFavorites();
+        return; // ignore infinite-scroll loads while viewing favorites
+    }
     if (isLoading) return;
     isLoading = true;
     loaderEl.classList.remove('hidden');
@@ -112,7 +176,10 @@ async function loadImages(reset = false) {
         const data = await res.json();
         const results = (data.results || []).map(img => ({
             url: img.url,
-            source: 'nekos.best'
+            source: 'nekos.best',
+            tag: activeTag,
+            artist: img.artist_name || null,
+            sourceUrl: img.source_url || null
         }));
 
         if (results.length === 0) throw new Error('No images returned');
@@ -135,20 +202,60 @@ async function loadImages(reset = false) {
     }
 }
 
+// --- Favorites View ---
+function renderFavorites() {
+    loaderEl.classList.add('hidden');
+    gridEl.innerHTML = '';
+    const favs = getFavorites();
+    if (favs.length === 0) {
+        gridEl.innerHTML = `
+            <div class="col-span-full text-center py-10">
+                <p class="text-gray-400 font-bold mb-2">No favorites yet</p>
+                <p class="text-xs text-gray-500">Tap the <i class="fas fa-heart text-accent-pink"></i> on any image to save it here.</p>
+            </div>
+        `;
+        return;
+    }
+    renderImages(favs);
+}
+
 // --- Render Images ---
 function renderImages(images) {
-    images.forEach((img, index) => {
+    images.forEach((img) => {
         // Card Container
         const card = document.createElement('div');
         card.className = "break-inside-avoid mb-4 group relative rounded-2xl overflow-hidden bg-white/5 cursor-zoom-in active:scale-95 transition-transform duration-200 border border-white/5 hover:border-accent-pink/30";
-        card.onclick = () => openLightbox(img.url, activeTag, img.source);
 
         // Image
         const imageEl = document.createElement('img');
         imageEl.src = img.url;
+        imageEl.alt = altFor(img);
         imageEl.className = "w-full h-auto object-cover opacity-0 transition-opacity duration-500";
         imageEl.loading = "lazy";
         imageEl.onload = () => imageEl.classList.remove('opacity-0');
+
+        // Favorite (heart) button
+        const fav = document.createElement('button');
+        const refreshFav = () => {
+            const on = isFavorite(img.url);
+            fav.className = "absolute top-3 right-3 z-10 w-9 h-9 rounded-full liquid-glass flex items-center justify-center text-base transition-all " +
+                (on ? "opacity-100 text-accent-pink" : "opacity-0 group-hover:opacity-100 text-white hover:text-accent-pink");
+            fav.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
+            fav.innerHTML = on ? '<i class="fas fa-heart"></i>' : '<i class="far fa-heart"></i>';
+        };
+        refreshFav();
+        const onFavToggle = () => {
+            refreshFav();
+            if (favoritesMode && !isFavorite(img.url)) {
+                card.remove();
+                if (gridEl.children.length === 0) renderFavorites();
+            }
+        };
+        fav.onclick = (e) => {
+            e.stopPropagation(); // don't open the lightbox
+            toggleFavorite(img);
+            onFavToggle();
+        };
 
         // Overlay (Hover)
         const overlay = document.createElement('div');
@@ -156,29 +263,74 @@ function renderImages(images) {
         overlay.innerHTML = `
             <div class="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                 <span class="text-xs font-bold text-accent-primary uppercase tracking-wider mb-1 block">${img.source}</span>
-                <h3 class="text-white font-bold capitalize text-lg shadow-black drop-shadow-md">${activeTag}</h3>
+                <h3 class="text-white font-bold capitalize text-lg shadow-black drop-shadow-md">${img.tag}</h3>
             </div>
         `;
 
+        card.onclick = () => openLightbox(img, onFavToggle);
+
         card.appendChild(imageEl);
+        card.appendChild(fav);
         card.appendChild(overlay);
         gridEl.appendChild(card);
     });
 }
 
 // --- Lightbox Logic ---
-window.openLightbox = (url, tag, source) => {
+window.openLightbox = (record, onFavChange) => {
     const lb = document.getElementById('lightbox');
     const lbContent = document.getElementById('lightbox-content');
     const imgInfo = document.getElementById('lightbox-img');
     const tagName = document.getElementById('lightbox-tag');
     const sourceInfo = document.getElementById('lightbox-source');
     const dlBtn = document.getElementById('download-btn');
+    const saveBtn = document.getElementById('save-btn');
 
-    imgInfo.src = url;
-    tagName.textContent = tag;
-    sourceInfo.textContent = source;
-    dlBtn.href = url;
+    imgInfo.src = record.url;
+    imgInfo.alt = altFor(record);
+    tagName.textContent = record.tag;
+
+    // Artist attribution from nekos.best. Built with DOM APIs (no innerHTML) so
+    // artist names / URLs from the API cannot inject markup; only http(s) links
+    // are honored.
+    sourceInfo.textContent = record.source;
+    if (record.artist) {
+        sourceInfo.append(' · ');
+        let safeUrl = null;
+        if (record.sourceUrl) {
+            try {
+                const u = new URL(record.sourceUrl);
+                if (u.protocol === 'http:' || u.protocol === 'https:') safeUrl = u.href;
+            } catch { /* invalid URL — fall back to plain text */ }
+        }
+        if (safeUrl) {
+            const a = document.createElement('a');
+            a.href = safeUrl;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.className = 'underline hover:text-white';
+            a.textContent = record.artist;
+            sourceInfo.append(a);
+        } else {
+            sourceInfo.append(record.artist);
+        }
+    }
+
+    dlBtn.href = record.url;
+    dlBtn.setAttribute('aria-label', 'Download image');
+
+    // Save-to-favorites toggle, kept in sync with the originating card's heart.
+    const syncSave = () => {
+        const on = isFavorite(record.url);
+        saveBtn.innerHTML = on ? '<i class="fas fa-heart mr-2"></i>Saved' : 'Save to Collection';
+        saveBtn.setAttribute('aria-label', on ? 'Remove from favorites' : 'Save to favorites');
+    };
+    syncSave();
+    saveBtn.onclick = () => {
+        toggleFavorite(record);
+        syncSave();
+        if (onFavChange) onFavChange();
+    };
 
     lb.classList.remove('hidden');
     // Force reflow
@@ -204,6 +356,27 @@ window.closeLightbox = (e) => {
 
 // --- Event Listeners ---
 function setupEventListeners() {
+    // Tag search: live-filter the pills; Enter loads the top match.
+    const searchEl = document.getElementById('tag-search');
+    if (searchEl) {
+        searchEl.addEventListener('input', () => {
+            tagQuery = searchEl.value.trim().toLowerCase();
+            renderTags();
+        });
+        searchEl.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter') return;
+            const q = searchEl.value.trim().toLowerCase();
+            if (!q) return;
+            const match = TAGS.find(t => t.name.toLowerCase().includes(q));
+            if (match) {
+                activeTag = match.name;
+                favoritesMode = false;
+                renderTags();
+                loadImages(true);
+            }
+        });
+    }
+
     // Infinite Scroll
     window.addEventListener('scroll', () => {
         if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
